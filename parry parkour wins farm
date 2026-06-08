@@ -1,0 +1,398 @@
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Teleport Settings (Defaults to Tower of Hecc coordinates)
+local TARGET_POSITION = Vector3.new(32, 1004, -88)
+local teleportActive = false
+local savedPosition = nil 
+
+-- Create the ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomModernGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+-- Create the Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 420, 0, 280) 
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
+mainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true 
+mainFrame.Parent = screenGui
+
+-- Add Rounded Corners to Main Frame
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = mainFrame
+
+-- Add the Dark Gradient
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Rotation = 45
+local topColor = Color3.fromRGB(43, 47, 56)    
+local bottomColor = Color3.fromRGB(28, 30, 36) 
+uiGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, topColor),
+	ColorSequenceKeypoint.new(1, bottomColor)
+})
+uiGradient.Parent = mainFrame
+
+-- Add Header Container
+local headerFrame = Instance.new("Frame")
+headerFrame.Name = "HeaderFrame"
+headerFrame.Size = UDim2.new(1, 0, 0, 50)
+headerFrame.BackgroundTransparency = 1
+headerFrame.ZIndex = 5
+headerFrame.Parent = mainFrame
+
+-- Add a Title Text
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, -150, 0, 50)
+titleLabel.Position = UDim2.new(0, 15, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "parry parkour win farmer"
+titleLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 16
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.ZIndex = 5
+titleLabel.Parent = headerFrame
+
+-- Create Close (X) Button
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 35, 0, 35)
+closeButton.Position = UDim2.new(1, -45, 0, 10)
+closeButton.BackgroundTransparency = 1
+closeButton.Text = "X"
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 18
+closeButton.TextColor3 = Color3.fromRGB(220, 76, 76)
+closeButton.ZIndex = 6
+closeButton.Parent = headerFrame
+
+-- Create Minimize / Maximize Button
+local miniButton = Instance.new("TextButton")
+miniButton.Name = "MiniButton"
+miniButton.Size = UDim2.new(0, 35, 0, 35)
+miniButton.Position = UDim2.new(1, -85, 0, 10)
+miniButton.BackgroundTransparency = 1
+miniButton.Text = "-"
+miniButton.Font = Enum.Font.GothamBold
+miniButton.TextSize = 24
+miniButton.TextColor3 = Color3.fromRGB(240, 240, 245)
+miniButton.ZIndex = 6
+miniButton.Parent = headerFrame
+
+-- Navigation Buttons container
+local navFrame = Instance.new("Frame")
+navFrame.Name = "NavFrame"
+navFrame.Size = UDim2.new(0, 140, 0, 30)
+navFrame.Position = UDim2.new(0.5, -70, 0, 225) 
+navFrame.BackgroundTransparency = 1
+navFrame.ZIndex = 5
+navFrame.Parent = mainFrame
+
+local leftArrow = Instance.new("TextButton")
+leftArrow.Name = "LeftArrow"
+leftArrow.Size = UDim2.new(0, 30, 1, 0)
+leftArrow.Position = UDim2.new(0, 0, 0, 0)
+leftArrow.BackgroundTransparency = 1
+leftArrow.Text = "<"
+leftArrow.Font = Enum.Font.GothamBold
+leftArrow.TextSize = 18
+leftArrow.TextColor3 = Color3.fromRGB(240, 240, 245)
+leftArrow.ZIndex = 6
+leftArrow.Parent = navFrame
+
+local pageTitle = Instance.new("TextLabel")
+pageTitle.Name = "PageTitle"
+pageTitle.Size = UDim2.new(0, 80, 1, 0)
+pageTitle.Position = UDim2.new(0, 30, 0, 0)
+pageTitle.BackgroundTransparency = 1
+pageTitle.Text = "Farm"
+pageTitle.Font = Enum.Font.GothamBold
+pageTitle.TextSize = 14
+pageTitle.TextColor3 = Color3.fromRGB(180, 185, 200)
+pageTitle.ZIndex = 5
+pageTitle.Parent = navFrame
+
+local rightArrow = Instance.new("TextButton")
+rightArrow.Name = "RightArrow"
+rightArrow.Size = UDim2.new(0, 30, 1, 0)
+rightArrow.Position = UDim2.new(0, 110, 0, 0)
+rightArrow.BackgroundTransparency = 1
+rightArrow.Text = ">"
+rightArrow.Font = Enum.Font.GothamBold
+rightArrow.TextSize = 18
+rightArrow.TextColor3 = Color3.fromRGB(240, 240, 245)
+rightArrow.ZIndex = 6
+rightArrow.Parent = navFrame
+
+-- Container for Content Pages
+local pagesContainer = Instance.new("Frame")
+pagesContainer.Name = "PagesContainer"
+pagesContainer.Size = UDim2.new(3, 0, 1, -115) 
+pagesContainer.Position = UDim2.new(0, 0, 0, 60)
+pagesContainer.BackgroundTransparency = 1
+pagesContainer.ZIndex = 2
+pagesContainer.Parent = mainFrame
+
+--- ==========================================================
+-- PAGE 1: FARM PAGE
+--- ==========================================================
+local farmPage = Instance.new("Frame")
+farmPage.Name = "FarmPage"
+farmPage.Size = UDim2.new(1/3, 0, 1, 0)
+farmPage.Position = UDim2.new(0, 0, 0, 0)
+farmPage.BackgroundTransparency = 1
+farmPage.ZIndex = 2
+farmPage.Parent = pagesContainer
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 240, 0, 70) 
+toggleButton.Position = UDim2.new(0.5, -120, 0.5, -35) 
+toggleButton.BackgroundColor3 = Color3.fromRGB(220, 76, 76) 
+toggleButton.Text = "STATUS: OFF"
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 20 
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.ZIndex = 3
+toggleButton.Parent = farmPage
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 10) 
+buttonCorner.Parent = toggleButton
+
+--- ==========================================================
+-- PAGE 2: TOWERS PAGE
+--- ==========================================================
+local towersPage = Instance.new("Frame")
+towersPage.Name = "TowersPage"
+towersPage.Size = UDim2.new(1/3, 0, 1, 0)
+towersPage.Position = UDim2.new(1/3, 0, 0, 0) 
+towersPage.BackgroundTransparency = 1
+towersPage.ZIndex = 2
+towersPage.Parent = pagesContainer
+
+local uigrid = Instance.new("UIGridLayout")
+uigrid.CellSize = UDim2.new(0, 115, 0, 40)
+uigrid.CellPadding = UDim2.new(0, 10, 0, 10)
+uigrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+uigrid.VerticalAlignment = Enum.VerticalAlignment.Top
+uigrid.Parent = towersPage
+
+local towerCoordinates = {
+	["Tower of Hecc"]        = Vector3.new(32, 1004, -88),
+	["Tower of Hell X"]      = Vector3.new(244, 1031, 551),
+	["Tower of Angel"]       = Vector3.new(1181, 1006, 168),
+	["Tower of Stress"]      = Vector3.new(32, 1004, 129),
+	["Tower of Cold Hands"]  = Vector3.new(32, 1004, 297),
+	["Tower of Keyboard"]    = Vector3.new(474, 1004, 542),
+	["Tower of Long Stick"]  = Vector3.new(767, 1004, 542),
+	["Tower of True Skill"]  = Vector3.new(606, 1014, 541),
+	["Tower of Misery"]      = Vector3.new(1079, 2979, 540)
+}
+
+local towerNames = {
+	"Tower of Hecc", "Tower of Hell X", "Tower of Angel",
+	"Tower of Stress", "Tower of Cold Hands", "Tower of Keyboard",
+	"Tower of Long Stick", "Tower of True Skill", "Tower of Misery"
+}
+
+for i, name in ipairs(towerNames) do
+	local btn = Instance.new("TextButton")
+	btn.Name = "TowerBtn_"..i
+	btn.Text = name
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 11
+	btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+	btn.BackgroundColor3 = Color3.fromRGB(53, 58, 68) 
+	btn.ZIndex = 3
+	btn.Parent = towersPage
+	
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = btn
+	
+	btn.MouseButton1Click:Connect(function()
+		local coords = towerCoordinates[name]
+		if coords then
+			TARGET_POSITION = coords
+			print("Teleport destination updated to: " .. name .. " (" .. tostring(coords) .. ")")
+		end
+	end)
+end
+
+--- ==========================================================
+-- PAGE 3: CREDITS PAGE
+--- ==========================================================
+local creditsPage = Instance.new("Frame")
+creditsPage.Name = "CreditsPage"
+creditsPage.Size = UDim2.new(1/3, 0, 1, 0)
+creditsPage.Position = UDim2.new(2/3, 0, 0, 0) 
+creditsPage.BackgroundTransparency = 1
+creditsPage.ZIndex = 2
+creditsPage.Parent = pagesContainer
+
+local creditsLabel = Instance.new("TextLabel")
+creditsLabel.Name = "CreditsLabel"
+creditsLabel.Size = UDim2.new(1, -40, 0, 60)
+creditsLabel.Position = UDim2.new(0, 20, 0.5, -30)
+creditsLabel.BackgroundTransparency = 1
+creditsLabel.Text = "everything by bartsimp :)"
+creditsLabel.TextColor3 = Color3.fromRGB(180, 185, 200)
+creditsLabel.Font = Enum.Font.GothamBold
+creditsLabel.TextSize = 18
+creditsLabel.TextWrapped = true
+creditsLabel.ZIndex = 3
+creditsLabel.Parent = creditsPage
+
+--- ==========================================================
+--- THREE-PAGE INSTANT NAVIGATION LOGIC
+--- ==========================================================
+local pageOrder = {"Farm", "Towers", "Credits"}
+local currentIdx = 1
+
+local function updatePage()
+	local targetName = pageOrder[currentIdx]
+	pageTitle.Text = targetName
+	
+	local offsetMultiplier = -(currentIdx - 1)
+	pagesContainer.Position = UDim2.new(offsetMultiplier, 0, 0, 60)
+end
+
+leftArrow.MouseButton1Click:Connect(function()
+	currentIdx = currentIdx - 1
+	if currentIdx < 1 then currentIdx = #pageOrder end 
+	updatePage()
+end)
+
+rightArrow.MouseButton1Click:Connect(function()
+	currentIdx = currentIdx + 1
+	if currentIdx > #pageOrder then currentIdx = 1 end 
+	updatePage()
+end)
+
+--- ==========================================================
+--- WINDOW CONTROLS (X and -/+)
+--- ==========================================================
+local isMinimized = false
+local originalSize = mainFrame.Size
+
+closeButton.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
+
+miniButton.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	
+	if isMinimized then
+		miniButton.Text = "+"
+	else
+		miniButton.Text = "-"
+	end
+	
+	local targetSize = isMinimized and UDim2.new(0, 420, 0, 50) or originalSize
+	TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Size = targetSize}):Play()
+	
+	pagesContainer.Visible = not isMinimized
+	navFrame.Visible = not isMinimized
+end)
+
+--- ==========================================================
+--- TELEPORT LOOP LOGIC (Instant 0s Delay Loop)
+--- ==========================================================
+task.spawn(function()
+	while true do
+		if teleportActive and LocalPlayer.Character then
+			local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if rootPart then
+				rootPart.CFrame = CFrame.new(TARGET_POSITION)
+			end
+		end
+		task.wait() 
+	end
+end)
+
+toggleButton.MouseButton1Click:Connect(function()
+	local character = LocalPlayer.Character
+	local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+	
+	if not rootPart then return end 
+	
+	teleportActive = not teleportActive 
+	
+	if teleportActive then
+		savedPosition = rootPart.CFrame 
+		
+		toggleButton.Text = "STATUS: ON"
+		TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(62, 180, 107)}):Play()
+		
+		if rootPart then
+			rootPart.CFrame = CFrame.new(TARGET_POSITION)
+		end
+	else
+		toggleButton.Text = "STATUS: OFF"
+		TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(220, 76, 76)}):Play()
+		
+		if savedPosition and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = savedPosition 
+		end
+	end
+end)
+
+--- ==========================================================
+--- SMOOTH DRAGGING SYSTEM
+--- ==========================================================
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local TWEEN_INFO = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function update(input)
+	local delta = input.Position - dragStart
+	local targetPosition = UDim2.new(
+		startPos.X.Scale, 
+		startPos.X.Offset + delta.X, 
+		startPos.Y.Scale, 
+		startPos.Y.Offset + delta.Y
+	)
+	TweenService:Create(mainFrame, TWEEN_INFO, {Position = targetPosition}):Play()
+end
+
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
